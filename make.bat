@@ -2,7 +2,7 @@
 if "%1" == "clean" goto :clean
 if "%1" == "debug" goto :debug
 
-nvcc -o add_cuda.exe kernel.cu helper_functions.c fuzzy_timing.c
+nvcc -o add_cuda.exe kernel.cu helper_functions.c fuzzy_timing.c --gpu-architecture=sm_35 -rdc=true
 goto :eof
 
 :debug

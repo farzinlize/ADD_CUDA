@@ -71,7 +71,6 @@ int main(int argc, char * argv[])
     
     /* inital data on device */
     CUDA_CHECK_RETURN(cudaMalloc((void **)&a_d, sizeof(int)*size));
-	//CUDA_CHECK_RETURN(cudaMalloc((void **)&out_d, sizeof(int) * block_count * stream_count));
 
     /* ### SEQUENTIAL ### */
     set_clock();
