@@ -57,7 +57,6 @@ int main(int argc, char * argv[])
     int block_size = 1024;
     int stream_size = size / stream_count;
     int block_count = (stream_size/block_size)/2;
-	int out_size_stream = block_count / stream_count;
     
     /* define and set kernel variables */
 	dim3 grid_dim(block_count, 1, 1);
@@ -68,19 +67,17 @@ int main(int argc, char * argv[])
 
     /* inital data on host */
     initialize_data_random_cudaMallocHost(&a_h, size);
-    initialize_data_zero_cudaMallocHost(&device_out_h, block_count);
+    initialize_data_zero_cudaMallocHost(&device_out_h, block_count * stream_count);
     
     /* inital data on device */
     CUDA_CHECK_RETURN(cudaMalloc((void **)&a_d, sizeof(int)*size));
-	CUDA_CHECK_RETURN(cudaMalloc((void **)&out_d, sizeof(int)*block_count));
+	CUDA_CHECK_RETURN(cudaMalloc((void **)&out_d, sizeof(int) * block_count * stream_count));
 
     /* ### SEQUENTIAL ### */
     set_clock();
 	sum_seq = sum_array(a_h, size);
     seq_time = get_elapsed_time();
-    
-    printf("[TIME] Sequential: %.4f\n", seq_time);
-    
+        
     /* ### PARALLEL GPU ### */
 	set_clock();
 
@@ -88,9 +85,9 @@ int main(int argc, char * argv[])
 	for(int stream_id=0 ; stream_id < stream_count ; stream_id++){
 		cudaMemcpyAsync(&a_d[offset], &a_h[offset], stream_size*sizeof(int), cudaMemcpyHostToDevice, streams[stream_id]);
 		add_kernel<<<grid_dim, block_dim, block_size*sizeof(int), streams[stream_id]>>>(&a_d[offset], &out_d[out_offset]);
-		cudaMemcpyAsync(&device_out_h[out_offset], &out_d[out_offset], out_size_stream*sizeof(int), cudaMemcpyDeviceToHost, streams[stream_id]);
+		cudaMemcpyAsync(&device_out_h[out_offset], &out_d[out_offset], block_count*sizeof(int), cudaMemcpyDeviceToHost, streams[stream_id]);
 		offset+=stream_size;
-		out_offset+=out_size_stream;
+		out_offset+=block_count;
     }
     
     CUDA_CHECK_RETURN(cudaDeviceSynchronize());
@@ -99,16 +96,18 @@ int main(int argc, char * argv[])
     kernel_time = get_elapsed_time();
     set_clock();
 
-	sum_parralel = sum_array(device_out_h, block_count);
+	sum_parralel = sum_array(device_out_h, block_count * stream_count);
 
 	total_time = get_elapsed_time();
 	total_time += kernel_time;
 
     /* printing result and validation */
+    printf("[TIME] Sequential: %.4f\n", seq_time);
 	printf("[TIME] total parallel: %.4f\n", total_time);
     printf("[TIME] kernel_time : %.4f\n", kernel_time);
-    printf("[SPEEDUP] sequentianal / parallel_time  : %.4f\n", seq_time/total_time);
-	printf("Parallel_sum: %d \tSeq_sum: %d", sum_parralel, sum_seq);
+    printf("[SPEEDUP] sequentianal / parallel_time: %.4f\n", seq_time/total_time);
+    printf("[VALIDATE] Parallel_sum: %d \tSeq_sum: %d\n", sum_parralel, sum_seq);
+    printf("[VALIDATE] diffrentc of sums: %d\n", abs(sum_parralel - sum_seq));
 
     return 0;
 }
