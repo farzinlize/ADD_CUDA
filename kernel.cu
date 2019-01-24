@@ -7,7 +7,7 @@ extern "C"{
 #include <stdio.h>
 #include <cuda.h>
 
-__global__ void add_kernel(int *a_in, int *out)
+__global__ void add_kernel(int *a_in)
 {
 	extern __shared__ int a_s[];
 	unsigned int tid_block = threadIdx.x;
@@ -23,8 +23,8 @@ __global__ void add_kernel(int *a_in, int *out)
 		__syncthreads();
 	}
 
-	if (tid_block == 0)
-		out[blockIdx.x] = a_s[0];
+    if (tid_block == 0)
+        a_in[blockIdx.x] = a_s[0];
 }
 
 int sum_array(int *a_in, int size)
@@ -47,7 +47,7 @@ int main(int argc, char * argv[])
 	}
 
     /* define and set variables */
-	int *a_h, *a_d, *out_d, *device_out_h;
+	int *a_h, *a_d, *device_out_h;
 	int sum_parralel, sum_seq;
     double seq_time, total_time, kernel_time;
     
@@ -71,7 +71,7 @@ int main(int argc, char * argv[])
     
     /* inital data on device */
     CUDA_CHECK_RETURN(cudaMalloc((void **)&a_d, sizeof(int)*size));
-	CUDA_CHECK_RETURN(cudaMalloc((void **)&out_d, sizeof(int) * block_count * stream_count));
+	//CUDA_CHECK_RETURN(cudaMalloc((void **)&out_d, sizeof(int) * block_count * stream_count));
 
     /* ### SEQUENTIAL ### */
     set_clock();
@@ -84,8 +84,8 @@ int main(int argc, char * argv[])
 	int offset = 0, out_offset = 0;
 	for(int stream_id=0 ; stream_id < stream_count ; stream_id++){
 		cudaMemcpyAsync(&a_d[offset], &a_h[offset], stream_size*sizeof(int), cudaMemcpyHostToDevice, streams[stream_id]);
-		add_kernel<<<grid_dim, block_dim, block_size*sizeof(int), streams[stream_id]>>>(&a_d[offset], &out_d[out_offset]);
-		cudaMemcpyAsync(&device_out_h[out_offset], &out_d[out_offset], block_count*sizeof(int), cudaMemcpyDeviceToHost, streams[stream_id]);
+		add_kernel<<<grid_dim, block_dim, block_size*sizeof(int), streams[stream_id]>>>(&a_d[offset]);
+		cudaMemcpyAsync(&device_out_h[out_offset], &a_d[offset], block_count*sizeof(int), cudaMemcpyDeviceToHost, streams[stream_id]);
 		offset+=stream_size;
 		out_offset+=block_count;
     }
