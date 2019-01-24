@@ -1,3 +1,10 @@
+*.vcxproj
+/.vscode
+/x64
+*.exe
+*.lib
+*.exp
+
 *.i
 *.ii
 *.gpu
