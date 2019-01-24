@@ -38,13 +38,21 @@ int sum_array(int *a_in, int size)
 int main(int argc, char * argv[])
 {
 
+    /* check and warning for user input */
+    if(argc != 3){
+		printf("Correct way to execute this program is:\n");
+		printf("add_cuda factor(MB) stream_count\n");
+		printf("For example:\nadd_cuda 40 4\n");
+		return 1;
+	}
+
     /* define and set variables */
 	int *a_h, *a_d, *out_d, *device_out_h;
 	int sum_parralel, sum_seq;
-	double seq_time, total_time, kernel_time;
-
-    int stream_count = 4;   //TODO: get from input
-    int factor = 5;         //TODO: get from input
+    double seq_time, total_time, kernel_time;
+    
+    int factor = atoi(argv[1]);
+    int stream_count = atoi(argv[2]);
     int size = 1024 * 1024 * factor;
     int block_size = 1024;
     int stream_size = size / stream_count;
