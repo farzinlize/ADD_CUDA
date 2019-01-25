@@ -108,5 +108,11 @@ int main(int argc, char * argv[])
     printf("[VALIDATE] Parallel_sum: %d \tSeq_sum: %d\n", sum_parralel, sum_seq);
     printf("[VALIDATE] diffrentc of sums: %d\n", abs(sum_parralel - sum_seq));
 
+    /* free alocated memory */
+    free(streams);
+    CUDA_CHECK_RETURN(cudaFreeHost(a_h));
+    CUDA_CHECK_RETURN(cudaFreeHost(device_out_h));
+    CUDA_CHECK_RETURN(cudaFree(a_d));
+
     return 0;
 }
