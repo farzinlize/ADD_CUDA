@@ -35,29 +35,19 @@ int sum_array(int *a_in, int size)
     return sum;
 }
 
-int main(int argc, char * argv[])
+#ifdef OVERLAP
+int overlaped_transfer_kernel(int factor, int stream_count)
 {
-
-    /* check and warning for user input */
-    if(argc != 3){
-		printf("Correct way to execute this program is:\n");
-		printf("add_cuda factor(MB) stream_count\n");
-		printf("For example:\nadd_cuda 40 4\n");
-		return 1;
-	}
-
     /* define and set variables */
 	int *a_h, *a_d, *device_out_h;
 	int sum_parralel, sum_seq;
     double seq_time, total_time, kernel_time;
-    
-    int factor = atoi(argv[1]);
-    int stream_count = atoi(argv[2]);
+
     int size = 1024 * 1024 * factor;
     int block_size = 1024;
     int stream_size = size / stream_count;
     int block_count = (stream_size/block_size)/2;
-    
+
     /* define and set kernel variables */
 	dim3 grid_dim(block_count, 1, 1);
 	dim3 block_dim(block_size, 1, 1);
@@ -116,3 +106,26 @@ int main(int argc, char * argv[])
 
     return 0;
 }
+
+int main(int argc, char * argv[])
+{
+    /* check and warning for user input */
+    if(argc != 3){
+		printf("Correct way to execute this program is:\n");
+		printf("add_cuda factor(MB) stream_count\n");
+		printf("For example:\nadd_cuda 40 4\n");
+		return 1;
+	}
+
+    int factor = atoi(argv[1]);
+    int stream_count = atoi(argv[2]);
+
+    return overlaped_transfer_kernel(factor, stream_count);
+}
+
+#else
+int main()
+{
+    return 0;
+}
+#endif
