@@ -8,6 +8,7 @@ if "%1" == "clean" goto :clean
 :loop_args
 if "%1" == "debug" set __defines=%__defines% -DDEBUG
 if "%1" == "overlap" set __defines=%__defines% -DOVERLAP
+if "%1" == "inarray" set __defines=%__defines% -DIN_ARRAY
 if "%1" == "test" set __defines=%__defines% -DTEST
 shift
 if NOT "%~1"=="" goto :loop_args

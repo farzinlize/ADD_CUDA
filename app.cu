@@ -41,6 +41,15 @@ int overlaped_transfer_kernel(int factor, int stream_count)
     /* inital data on device */
     CUDA_CHECK_RETURN(cudaMalloc((void **)&a_d, sizeof(int)*size));
 
+    /* additinal code for specific compile */
+    #if defined(IN_ARRAY)
+    printf("[ARRAY] in array operation\n");
+    #else
+    printf("[ARRAY] out array operation\n");
+    int *out_d;
+    CUDA_CHECK_RETURN(cudaMalloc((void **)&out_d, sizeof(int) * block_count * stream_count));
+    #endif
+
     /* ### SEQUENTIAL ### */
     set_clock();
 	sum_seq = sum_array(a_h, size);
@@ -51,11 +60,18 @@ int overlaped_transfer_kernel(int factor, int stream_count)
 
 	int offset = 0, out_offset = 0;
 	for(int stream_id=0 ; stream_id < stream_count ; stream_id++){
-		cudaMemcpyAsync(&a_d[offset], &a_h[offset], stream_size*sizeof(int), cudaMemcpyHostToDevice, streams[stream_id]);
-		add_kernel<<<grid_dim, block_dim, block_size*sizeof(int), streams[stream_id]>>>(&a_d[offset]);
+        cudaMemcpyAsync(&a_d[offset], &a_h[offset], stream_size*sizeof(int), cudaMemcpyHostToDevice, streams[stream_id]);
+
+        #ifdef IN_ARRAY
+        add_kernel_in_array<<<grid_dim, block_dim, block_size*sizeof(int), streams[stream_id]>>>(&a_d[offset]);
 		cudaMemcpyAsync(&device_out_h[out_offset], &a_d[offset], block_count*sizeof(int), cudaMemcpyDeviceToHost, streams[stream_id]);
-		offset+=stream_size;
-		out_offset+=block_count;
+        #else
+		add_kernel<<<grid_dim, block_dim, block_size*sizeof(int), streams[stream_id]>>>(&a_d[offset], &out_d[out_offset]);
+		cudaMemcpyAsync(&device_out_h[out_offset], &out_d[out_offset], block_count*sizeof(int), cudaMemcpyDeviceToHost, streams[stream_id]);
+        #endif
+
+        offset+=stream_size;
+        out_offset+=block_count;
     }
     
     CUDA_CHECK_RETURN(cudaDeviceSynchronize());
@@ -82,6 +98,10 @@ int overlaped_transfer_kernel(int factor, int stream_count)
     CUDA_CHECK_RETURN(cudaFreeHost(a_h));
     CUDA_CHECK_RETURN(cudaFreeHost(device_out_h));
     CUDA_CHECK_RETURN(cudaFree(a_d));
+
+    #ifndef IN_ARRAY
+    CUDA_CHECK_RETURN(cudaFree(out_d));
+    #endif
 
     return 0;
 }

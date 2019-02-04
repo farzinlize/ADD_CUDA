@@ -12,7 +12,12 @@ typedef struct kernelParameters {
     cudaStream_t stream; 
 } kernelParameters;
 
-__global__ void add_kernel(int *a_in);
+#ifdef IN_ARRAY
+__global__ void add_kernel_in_array(int *a_in);
+void add_kernel_in_array_wrapper(kernelParameters * params, int * a_in);
+#else
+__global__ void add_kernel(int *a_in, int *out);
 void add_kernel_wrapper(kernelParameters * params, int * a_in);
+#endif
 
 #endif
