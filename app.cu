@@ -1,30 +1,8 @@
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
-extern "C"{
-    #include "helper_functions.h"
-    #include "fuzzy_timing.h"
-}
 #include <stdio.h>
-#include <cuda.h>
-
-__global__ void add_kernel(int *a_in)
-{
-	extern __shared__ int a_s[];
-	unsigned int tid_block = threadIdx.x;
-	unsigned int tid = (blockDim.x*2) * blockIdx.x + tid_block;
-	
-	a_s[tid_block] = a_in[tid] + a_in[tid+blockDim.x];
-	__syncthreads();
-
-    for (unsigned int s = blockDim.x/2; s > 0 ; s >>= 1)
-    {
-		if (tid_block < s)
-			a_s[tid_block] = a_s[tid_block] + a_s[tid_block + s];
-		__syncthreads();
-	}
-
-    if (tid_block == 0)
-        a_in[blockIdx.x] = a_s[0];
+#include "kernels.cuh"
+extern "C"{
+    #include "fuzzy_timing.h"
+    #include "helper_functions.h"
 }
 
 int sum_array(int *a_in, int size)
@@ -35,7 +13,7 @@ int sum_array(int *a_in, int size)
     return sum;
 }
 
-#ifdef OVERLAP
+#if defined(OVERLAP)
 int overlaped_transfer_kernel(int factor, int stream_count)
 {
     /* define and set variables */
@@ -51,6 +29,7 @@ int overlaped_transfer_kernel(int factor, int stream_count)
     /* define and set kernel variables */
 	dim3 grid_dim(block_count, 1, 1);
 	dim3 block_dim(block_size, 1, 1);
+
     cudaStream_t* streams = (cudaStream_t *)malloc(sizeof(cudaStream_t) * stream_count);
 	for(int i=0;i<stream_count;i++)
         cudaStreamCreate(&streams[i]);
@@ -109,6 +88,8 @@ int overlaped_transfer_kernel(int factor, int stream_count)
 
 int main(int argc, char * argv[])
 {
+    printf("[MAIN] OVERLAP MAIN\n");
+
     /* check and warning for user input */
     if(argc != 3){
 		printf("Correct way to execute this program is:\n");
@@ -123,9 +104,20 @@ int main(int argc, char * argv[])
     return overlaped_transfer_kernel(factor, stream_count);
 }
 
+#elif defined(TEST)
+int main()
+{
+    printf("[MAIN] TEST MAIN\n");
+
+    set_clock();
+
+    return 0;
+}
+
 #else
 int main()
 {
+    printf("[MAIN] else MAIN\n");
     return 0;
 }
 #endif
