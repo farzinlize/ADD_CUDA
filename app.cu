@@ -135,9 +135,101 @@ int main()
 }
 
 #else
-int main()
+int one_add_kernel(int factor)
 {
-    printf("[MAIN] else MAIN\n");
+    /* define and set variables */
+	int *a_h, *a_d, *device_out_h;
+	int sum_parralel, sum_seq;
+    double seq_time, total_time, kernel_time;
+
+    int size = 1024 * 1024 * factor;
+    int block_size = 1024;
+    int block_count = (size/block_size)/2;
+
+    /* define and set kernel variables */
+	dim3 grid_dim(block_count, 1, 1);
+	dim3 block_dim(block_size, 1, 1);
+
+    /* inital data on host */
+    initialize_data_random(&a_h, size);
+    initialize_data_zero(&device_out_h, block_count);
+    
+    /* inital data on device */
+    CUDA_CHECK_RETURN(cudaMalloc((void **)&a_d, sizeof(int)*size));
+
+    /* additinal code for specific compile */
+    #if defined(IN_ARRAY)
+    printf("[ARRAY] in array operation\n");
+    #else
+    printf("[ARRAY] out array operation\n");
+    int *out_d;
+    CUDA_CHECK_RETURN(cudaMalloc((void **)&out_d, sizeof(int) * block_count));
+    #endif
+
+    /* ### SEQUENTIAL ### */
+    set_clock();
+	sum_seq = sum_array(a_h, size);
+    seq_time = get_elapsed_time();
+        
+    /* ### PARALLEL GPU ### */
+	set_clock();
+
+    cudaMemcpyAsync(a_d, a_h, size*sizeof(int), cudaMemcpyHostToDevice);
+
+    #ifdef IN_ARRAY
+    add_kernel_in_array<<<grid_dim, block_dim, block_size*sizeof(int)>>>(a_d);
+	cudaMemcpyAsync(device_out_h, a_d, block_count*sizeof(int), cudaMemcpyDeviceToHost);
+    #else
+	add_kernel<<<grid_dim, block_dim, block_size*sizeof(int)>>>(a_d, out_d);
+	cudaMemcpyAsync(device_out_h, out_d, block_count*sizeof(int), cudaMemcpyDeviceToHost);
+    #endif
+
+    CUDA_CHECK_RETURN(cudaDeviceSynchronize());
+	CUDA_CHECK_RETURN(cudaGetLastError());
+
+    kernel_time = get_elapsed_time();
+    set_clock();
+
+	sum_parralel = sum_array(device_out_h, block_count);
+
+	total_time = get_elapsed_time();
+	total_time += kernel_time;
+
+    /* printing result and validation */
+    printf("[TIME] Sequential: %.4f\n", seq_time);
+	printf("[TIME] total parallel: %.4f\n", total_time);
+    printf("[TIME] kernel_time : %.4f\n", kernel_time);
+    printf("[SPEEDUP] sequentianal / parallel_time: %.4f\n", seq_time/total_time);
+    printf("[VALIDATE] Parallel_sum: %d \tSeq_sum: %d\n", sum_parralel, sum_seq);
+    printf("[VALIDATE] diffrentc of sums: %d\n", abs(sum_parralel - sum_seq));
+
+    /* free alocated memory */
+    free(a_h);
+    free(device_out_h);
+
+    CUDA_CHECK_RETURN(cudaFree(a_d));
+
+    #ifndef IN_ARRAY
+    CUDA_CHECK_RETURN(cudaFree(out_d));
+    #endif
+
     return 0;
+}
+
+int main(int argc, char * argv[])
+{
+    printf("[MAIN] else MAIN (not overlap transfer)\n");
+    
+    /* check and warning for user input */
+    if(argc != 2){
+		printf("Correct way to execute this program is:\n");
+		printf("add_cuda factor(MB)\n");
+		printf("For example:\nadd_cuda 40\n");
+		return 1;
+	}
+
+    int factor = atoi(argv[1]);
+
+    return one_add_kernel(factor);
 }
 #endif
