@@ -149,8 +149,15 @@ int main()
 #else
 int one_add_kernel(int factor)
 {
+    /* inform in array or out array operation */
+    #if defined(IN_ARRAY)
+    printf("[ARRAY] in array operation\n");
+    #else
+    printf("[ARRAY] out array operation\n");
+    #endif
+
     /* define and set variables */
-	int *a_h, *a_d, *device_out_h;
+	int *a_h, *device_out_h;
 	int sum_parralel, sum_seq;
     double seq_time, total_time, kernel_time;
 
@@ -167,15 +174,12 @@ int one_add_kernel(int factor)
     initialize_data_zero(&device_out_h, block_count);
     
     /* inital data on device */
-    CUDA_CHECK_RETURN(cudaMalloc((void **)&a_d, sizeof(int)*size));
+    arguments arg;
+    CUDA_CHECK_RETURN(cudaMalloc((void **)&arg, sizeof(arguments)));
+    CUDA_CHECK_RETURN(cudaMalloc((void **)&(arg.a_in), sizeof(int) * size));
 
-    /* additinal code for specific compile */
-    #if defined(IN_ARRAY)
-    printf("[ARRAY] in array operation\n");
-    #else
-    printf("[ARRAY] out array operation\n");
-    int *out_d;
-    CUDA_CHECK_RETURN(cudaMalloc((void **)&out_d, sizeof(int) * block_count));
+    #ifndef IN_ARRAY
+    CUDA_CHECK_RETURN(cudaMalloc((void **)&(arg.out), sizeof(int) * block_count));    
     #endif
 
     /* ### SEQUENTIAL ### */
@@ -186,14 +190,14 @@ int one_add_kernel(int factor)
     /* ### PARALLEL GPU ### */
 	set_clock();
 
-    cudaMemcpyAsync(a_d, a_h, size*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpyAsync(arg.a_in, a_h, size*sizeof(int), cudaMemcpyHostToDevice);
 
     #ifdef IN_ARRAY
-    add_kernel_in_array<<<grid_dim, block_dim, block_size*sizeof(int)>>>(a_d);
-	cudaMemcpyAsync(device_out_h, a_d, block_count*sizeof(int), cudaMemcpyDeviceToHost);
+    add_kernel_in_array<<<grid_dim, block_dim, block_size*sizeof(int)>>>(arg);
+	cudaMemcpyAsync(device_out_h, arg.a_in, block_count*sizeof(int), cudaMemcpyDeviceToHost);
     #else
-	add_kernel<<<grid_dim, block_dim, block_size*sizeof(int)>>>(a_d, out_d);
-	cudaMemcpyAsync(device_out_h, out_d, block_count*sizeof(int), cudaMemcpyDeviceToHost);
+	add_kernel<<<grid_dim, block_dim, block_size*sizeof(int)>>>(arg);
+	cudaMemcpyAsync(device_out_h, arg.out, block_count*sizeof(int), cudaMemcpyDeviceToHost);
     #endif
 
     CUDA_CHECK_RETURN(cudaDeviceSynchronize());
@@ -219,10 +223,10 @@ int one_add_kernel(int factor)
     free(a_h);
     free(device_out_h);
 
-    CUDA_CHECK_RETURN(cudaFree(a_d));
+    CUDA_CHECK_RETURN(cudaFree(arg.a_in));
 
     #ifndef IN_ARRAY
-    CUDA_CHECK_RETURN(cudaFree(out_d));
+    CUDA_CHECK_RETURN(cudaFree(arg.out));
     #endif
 
     return 0;
