@@ -159,7 +159,7 @@ int one_add_kernel(int factor)
     /* define and set variables */
 	int *a_h, *device_out_h;
 	int sum_parralel, sum_seq;
-    double seq_time, total_time, kernel_time;
+    double seq_time, total_time, kernel_time, mem_time;
 
     int size = 1024 * 1024 * factor;
     int block_size = 1024;
@@ -190,14 +190,15 @@ int one_add_kernel(int factor)
     /* ### PARALLEL GPU ### */
 	set_clock();
 
-    cudaMemcpyAsync(arg.a_in, a_h, size*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(arg.a_in, a_h, size*sizeof(int), cudaMemcpyHostToDevice);
+
+    mem_time = get_elapsed_time();
+    set_clock();
 
     #ifdef IN_ARRAY
     add_kernel_in_array<<<grid_dim, block_dim, block_size*sizeof(int)>>>(arg);
-	cudaMemcpyAsync(device_out_h, arg.a_in, block_count*sizeof(int), cudaMemcpyDeviceToHost);
     #else
-	add_kernel<<<grid_dim, block_dim, block_size*sizeof(int)>>>(arg);
-	cudaMemcpyAsync(device_out_h, arg.out, block_count*sizeof(int), cudaMemcpyDeviceToHost);
+    add_kernel<<<grid_dim, block_dim, block_size*sizeof(int)>>>(arg);
     #endif
 
     CUDA_CHECK_RETURN(cudaDeviceSynchronize());
@@ -206,16 +207,28 @@ int one_add_kernel(int factor)
     kernel_time = get_elapsed_time();
     set_clock();
 
+    #ifdef IN_ARRAY
+    cudaMemcpy(device_out_h, arg.a_in, block_count*sizeof(int), cudaMemcpyDeviceToHost);
+    #else
+    cudaMemcpy(device_out_h, arg.out, block_count*sizeof(int), cudaMemcpyDeviceToHost);
+    #endif
+    
+    mem_time += get_elapsed_time();
+
+    set_clock();
+
 	sum_parralel = sum_array(device_out_h, block_count);
 
-	total_time = get_elapsed_time();
-	total_time += kernel_time;
+	kernel_time += get_elapsed_time();
+	total_time = kernel_time + mem_time;
 
     /* printing result and validation */
     printf("[TIME] Sequential: %.4f\n", seq_time);
 	printf("[TIME] total parallel: %.4f\n", total_time);
     printf("[TIME] kernel_time : %.4f\n", kernel_time);
-    printf("[SPEEDUP] sequentianal / parallel_time: %.4f\n", seq_time/total_time);
+    printf("[TIME] mem_time : %.4f\n", mem_time);
+    printf("[SPEEDUP] sequentianal / parallel_time (total time): %.4f\n", seq_time/total_time);
+    printf("[SPEEDUP] sequentianal / parallel_time (only operation): %.4f\n", seq_time/kernel_time);
     printf("[VALIDATE] Parallel_sum: %d \tSeq_sum: %d\n", sum_parralel, sum_seq);
     printf("[VALIDATE] diffrentc of sums: %d\n", abs(sum_parralel - sum_seq));
 
