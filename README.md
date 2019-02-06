@@ -1,8 +1,8 @@
 # Add Cuda Project
-Add cuda is a learning purpose project based on a simple task: Adding all element of an array in a single integer (**Summation**)
+Add cuda is a learning purpose project based on a simple task: Adding all elements of an array in a single integer (**Summation**)
 
 # Kernel
-The kernel used in this project is based on a **Optimizing Parallel Reduction in CUDA** lecture by *Mark Harris* introduced at GPGPU course at Shiraz University by *Dr. Farshad khunjush*. The **reduction** lecture contain several kernels that tying to achieve best speedup compare to the very first and simple add kernel at the begging of lecture.
+The kernel used in this project is based on **Optimizing Parallel Reduction in CUDA** lecture by *Mark Harris* introduced at GPGPU course at Shiraz University by *Dr. Farshad khunjush*. The **reduction** lecture contain several kernels that trying to achieve best speedup compare to the very first and simple add kernel at the begging of lecture.
 
 ## Reduction
 As it discussed in a lecture, reduction is a common and important data parallel primitive problem when after an iteration of working on data, number of active threads or potentially parallel tasks decreases.
@@ -13,12 +13,12 @@ Project has a **`make.bat`** file containing a simple *CMD script* to run a `nvc
 
     nvcc -o add_cuda.exe %source%  %__defines%
 
-The `source` variable contains all source files name included in project and the `__defines` variable contain defined values for compilation in order to compile in several ways.
+The `source` variable contains all source file names included in project and the `__defines` variable contain defined values for compilation in order to compile in several ways.
 possible values as argument passed to the script is shown below:
 
 Value | Description 
 --------- | --------- 
-inarray | choose between an in array operation or out array *(described below)* 
+inarray | choose between in array operation or out array *(described below)* 
 overlap | choose between parallel data transfer using several streams and sequential data transfer run with no streams (using only `streams0`) 
 debug | Active debug parts of code in purpose of debugging 
 test | Active a separated `main` in purpose of testing functions individually 
@@ -92,10 +92,10 @@ The total speedup used for only one purpose program that only want to launch one
 
 Seven version of kernel presented in the discussed lecture about reduction that each of them gain more speedup step by step. The table below present the execute speedup over implemented kernels correspond to kernels in the lecture on 40MB data:
 
-Kernel Number | Execute Speedup | Step Speedup  
---------- | --------- | ---------
-Kernel 4 (first add during global load) | 8.6061 | 
-  
+Kernel Number | Total Speedup | Execute Speedup | Step Speedup *Over execution* 
+--------- | --------- | --------- | ---------
+Kernel 4 (first add during global load) | 1.9454 | 8.6061 | 
+Kernel 5 (unroll last warp) | 2.1319 | 13.9464 | 1.62
 
 
 
