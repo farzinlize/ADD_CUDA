@@ -23,11 +23,10 @@ __global__ void add_kernel(arguments args)
 	a_s[tid_block] = args.a_in[tid] + args.a_in[tid+blockDim.x];
     __syncthreads();
 
-    for (unsigned int s = blockDim.x/2; s > 32 ; s >>= 1){
-		if (tid_block < s)
-			a_s[tid_block] = a_s[tid_block] + a_s[tid_block + s];
-		__syncthreads();
-	}
+	if (tid_block < 512) {a_s[tid_block] = a_s[tid_block] + a_s[tid_block + 512];} __syncthreads();
+	if (tid_block < 256) {a_s[tid_block] = a_s[tid_block] + a_s[tid_block + 256];} __syncthreads();
+	if (tid_block < 128) {a_s[tid_block] = a_s[tid_block] + a_s[tid_block + 128];} __syncthreads();
+	if (tid_block <  64) {a_s[tid_block] = a_s[tid_block] + a_s[tid_block +  64];} __syncthreads();
 
 	if (tid_block<32) warpReduce(a_s, tid_block);
 

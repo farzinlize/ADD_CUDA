@@ -96,6 +96,7 @@ Kernel Number | Total Speedup | Execute Speedup | Step Speedup *Over execution*
 --------- | --------- | --------- | ---------
 Kernel 4 (first add during global load) | 1.9454 | 8.6061 | 
 Kernel 5 (unroll last warp) | 2.1319 | 13.9464 | 1.62
+Kernel 6 (completely unrolled) | 2.1725 | 15.75 | 1.12
 
 
 
