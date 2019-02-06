@@ -102,7 +102,6 @@ int overlaped_transfer_kernel(int factor, int stream_count)
     for(int i=0;i<stream_count;i++){
         cudaStreamDestroy(streams[i]);
 
-        /* inital data on device for each stream */
         CUDA_CHECK_RETURN(cudaFree(args[i].a_in));
         
         #ifndef IN_ARRAY
