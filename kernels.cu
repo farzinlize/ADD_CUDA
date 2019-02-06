@@ -29,7 +29,7 @@ __global__ void add_kernel(arguments args)
 		__syncthreads();
 	}
 
-	if (tid<32) warpReduce(a_s, tid);
+	if (tid_block<32) warpReduce(a_s, tid_block);
 
 	if (tid_block == 0){
 		#ifdef IN_ARRAY
