@@ -1,11 +1,17 @@
+
 # Add Cuda Project
-Add cuda is a learning purpose project based on a simple task: Adding all elements of an array in a single integer (**Summation**)
+Add cuda is a learning purpose project based on a simple task: Adding all element of an array in a single integer (**Summation**)
 
 # Kernel
-The kernel used in this project is based on **Optimizing Parallel Reduction in CUDA** lecture by *Mark Harris* introduced at GPGPU course at Shiraz University by *Dr. Farshad khunjush*. The **reduction** lecture contain several kernels that trying to achieve best speedup compare to the very first and simple add kernel at the begging of lecture.
+The kernel used in this project is based on a **Optimizing Parallel Reduction in CUDA** lecture by *Mark Harris* introduced at GPGPU course at Shiraz University by *Dr. Farshad khunjush*. The **reduction** lecture contain several kernels that tying to achieve best speedup compare to the very first and simple add kernel at the begging of lecture.
 
 ## Reduction
 As it discussed in a lecture, reduction is a common and important data parallel primitive problem when after an iteration of working on data, number of active threads or potentially parallel tasks decreases.
+The kernel written in this project work on an input array. Each block uses an integer array as shared memory in size of number of threads in block so that each thread works on one element of this shared memory. All kernel versions used in this project provided at discussed **Optimizing Parallel Reduction in CUDA** lecture.
+In result, kernel provide the program shorter array of elements that contains summation of parts of input array. Summation of the result array in one integer is the final result. 
+
+**Dose using a different kernel on result array affect the total speedup?**
+It is very likely that invoking more kernels to do more things in parallel can effect the total speedup. Even all input data for new kernels is already presented at device but actually **removing final sequential summation has no effect** on the total speedup due to personal experiments. Bigger input array leads to bigger output and bigger output array leads to more sequential works at the end but even with 400MB input array (that make 20MB output array!), removing sequential part leads to only **3%** speedup (**1.0338x**). Consider that 3% speedup gained only because of removing sequential parts that corrupts final result. If we want to implement a parallel way to get the summation of output array in a single integer, we will get less than 3% speedup that not worth anything.
 
 # Compile Project 
 This project contains several ways to compile in order to report and measure several kind of speedup or any good information that helps the writer to achieve a better understanding about cuda codes and possible speedups.
@@ -13,12 +19,12 @@ Project has a **`make.bat`** file containing a simple *CMD script* to run a `nvc
 
     nvcc -o add_cuda.exe %source%  %__defines%
 
-The `source` variable contains all source file names included in project and the `__defines` variable contain defined values for compilation in order to compile in several ways.
+The `source` variable contains all source files name included in project and the `__defines` variable contain defined values for compilation in order to compile in several ways.
 possible values as argument passed to the script is shown below:
 
 Value | Description 
 --------- | --------- 
-inarray | choose between in array operation or out array *(described below)* 
+inarray | choose between an in array operation or out array *(described below)* 
 overlap | choose between parallel data transfer using several streams and sequential data transfer run with no streams (using only `streams0`) 
 debug | Active debug parts of code in purpose of debugging 
 test | Active a separated `main` in purpose of testing functions individually 
@@ -92,12 +98,14 @@ The total speedup used for only one purpose program that only want to launch one
 
 Seven version of kernel presented in the discussed lecture about reduction that each of them gain more speedup step by step. The table below present the execute speedup over implemented kernels correspond to kernels in the lecture on 40MB data:
 
-Kernel Number | Total Speedup | Execute Speedup | Step Speedup *Over execution* 
+Kernel Number | Total Speedup | Execute Speedup | Step Speedup *Over execution*
 --------- | --------- | --------- | ---------
-Kernel 4 (first add during global load) | 1.9454 | 8.6061 | 
+Kernel 4 (first add during global load) | 1.9454 | 8.6061 |
 Kernel 5 (unroll last warp) | 2.1319 | 13.9464 | 1.62
 Kernel 6 (completely unrolled) | 2.1725 | 15.75 | 1.12
 
+**Why completely unrolled kernel gain less speedup?**
+completely unrolling reduces plenty amount of works in kernel but it only gain 1.12 speedup factor that can be ignored but in the discussed lecture this kernel promises speedup around 1.8. The most logical reason can be **fixed number of threads in block** (1024) that can make too much overhead making all this thread per blocks. *Currently* I'm working on this reason about this lack of speedup by running experiments with different block sizes and even looking for more details and reasons around this issue.
 
 
 > This Report Written by Farzin Mohammdi with [StackEdit](https://stackedit.io/).
