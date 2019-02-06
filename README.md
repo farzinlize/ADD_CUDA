@@ -15,6 +15,7 @@ Project has a **`make.bat`** file containing a simple *CMD script* to run a `nvc
 
 The `source` variable contains all source files name included in project and the `__defines` variable contain defined values for compilation in order to compile in several ways.
 possible values as argument passed to the script is shown below:
+
 Value | Description 
 --------- | --------- 
 inarray | choose between an in array operation or out array *(described below)* 
@@ -90,6 +91,7 @@ The total speedup used for only one purpose program that only want to launch one
 > against sequential time.
 
 Seven version of kernel presented in the discussed lecture about reduction that each of them gain more speedup step by step. The table below present the execute speedup over implemented kernels correspond to kernels in the lecture on 40MB data:
+
 Kernel Number | Execute Speedup | Step Speedup  
 --------- | --------- | ---------
 Kernel 4 (first add during global load) | 8.6061 | 
